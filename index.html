@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HDEコンテンツスタジオ — SNS案件 絵コンテ制作ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Archivo:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#23211c; --paper:#efe9dc; --accent:#c2492f; --line:#cfc6b4; --field:#fffdf8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:'Zen Kaku Gothic New',sans-serif;
+  background-image:radial-gradient(#00000008 1px,transparent 1px);
+  background-size:18px 18px;
+}
+::selection{background:var(--accent);color:#fff;}
+input,textarea,select,button{font-family:inherit;}
+input:focus,textarea:focus,select:focus{outline:2px solid rgba(194,73,47,.2);border-color:var(--accent);}
+textarea{resize:vertical;}
+button{cursor:pointer;color:var(--ink);}
+.spin{display:inline-block;animation:sp 1s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* layout */
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:14px 26px;border-bottom:2px solid var(--ink);background:var(--paper);position:sticky;top:0;z-index:20;}
+.brand{display:flex;gap:12px;align-items:center;}
+.mark{font-size:26px;color:var(--accent);transform:rotate(8deg);}
+.bname{font-weight:900;font-size:19px;letter-spacing:0.5px;}
+.bsub{font-size:12px;opacity:.6;margin-top:1px;}
+.headbtns{display:flex;gap:8px;flex-wrap:wrap;}
+
+.metabar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:13px 26px;border-bottom:1px solid var(--line);}
+.title-in{font-size:19px;font-weight:700;border:none;background:transparent;border-bottom:2px solid var(--ink);padding:4px 2px;min-width:200px;}
+.meta-in{font-size:13px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:#fff;width:150px;}
+.ratio-grp{display:flex;gap:4px;margin-left:auto;background:#fff;padding:4px;border-radius:8px;border:1px solid var(--line);}
+.ratio-btn{border:none;background:transparent;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:700;}
+.ratio-btn.on{background:var(--ink);color:var(--paper);}
+
+.toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:13px 26px;}
+.tl,.tr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.stat{font-size:13px;font-weight:700;}
+.divx{opacity:.3;}
+.tag{font-size:11px;background:var(--ink);color:var(--paper);padding:3px 9px;border-radius:20px;}
+.vtoggle{display:flex;border:1px solid var(--ink);border-radius:7px;overflow:hidden;margin-left:6px;}
+.vt{border:none;background:transparent;padding:6px 12px;font-size:12px;font-weight:700;}
+.vt.on{background:var(--ink);color:var(--paper);}
+
+.ai-btn{border:none;background:var(--accent);color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;box-shadow:3px 3px 0 var(--ink);}
+.ai-btn:disabled{opacity:.4;box-shadow:none;cursor:not-allowed;}
+.solid{border:2px solid var(--ink);background:#fff;padding:9px 15px;border-radius:8px;font-weight:700;font-size:13px;}
+.ghost{border:1.5px solid var(--ink);background:transparent;padding:8px 14px;border-radius:7px;font-weight:600;font-size:12.5px;}
+
+main.list{display:flex;flex-direction:column;gap:14px;padding:8px 26px 80px;}
+main.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:8px 26px 80px;}
+
+.card-list{display:flex;gap:18px;background:#fff;border:1px solid var(--line);border-left:5px solid var(--ink);border-radius:10px;padding:16px;box-shadow:2px 2px 0 rgba(0,0,0,.06);}
+.card-grid{display:flex;flex-direction:column;gap:12px;background:#fff;border:1px solid var(--line);border-top:5px solid var(--ink);border-radius:10px;padding:14px;box-shadow:2px 2px 0 rgba(0,0,0,.06);}
+
+.framewrap{display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.frame{background:#f4f1ea;border:2px solid var(--ink);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;}
+.frame svg,.frame img{width:100%;height:100%;object-fit:cover;display:block;}
+.fr-empty{text-align:center;padding:10px;}
+.fr-no{font-family:Archivo,sans-serif;font-weight:800;font-size:15px;opacity:.7;}
+.fr-hint{font-size:10.5px;opacity:.45;margin-top:4px;}
+.fr-load{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;opacity:.6;}
+.fr-btns{display:flex;gap:6px;}
+.mini{flex:1;border:1.5px solid var(--ink);background:#fff;border-radius:5px;padding:5px 0;font-size:11px;font-weight:700;}
+.mini:disabled{opacity:.35;cursor:not-allowed;}
+
+.fields{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;}
+.cuthead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.cutno{font-family:Archivo,sans-serif;font-weight:800;font-size:14px;background:var(--ink);color:var(--paper);padding:3px 9px;border-radius:5px;}
+.selrow{display:flex;gap:6px;align-items:center;}
+.sel{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:12px;background:#fff;}
+.durwrap{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff;}
+.dur{width:42px;border:none;padding:5px 4px;font-size:12px;text-align:center;}
+.durunit{font-size:11px;padding-right:7px;opacity:.6;}
+.cuttools{display:flex;gap:4px;margin-left:auto;}
+.dot{width:26px;height:26px;border:1px solid var(--line);background:#fff;border-radius:6px;font-weight:700;}
+.f{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:13px;background:var(--field);width:100%;line-height:1.5;}
+.two{display:flex;gap:8px;}
+.fin{flex:1;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:12.5px;background:var(--field);min-width:0;}
+.fblock{display:flex;gap:8px;align-items:stretch;}
+.flabel{flex-shrink:0;width:60px;font-size:10.5px;font-weight:800;color:#fff;border-radius:5px;display:flex;align-items:center;justify-content:center;letter-spacing:1.5px;padding:0 4px;}
+.flabel.scene{background:#3a3833;}
+.flabel.afureco{background:#7a4a2a;}
+.flabel.caption{background:#9a7510;}
+.fbox{flex:1;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:13px;background:var(--field);line-height:1.5;min-width:0;font-family:inherit;}
+.fbox.afureco{background:#fff5ec;border-color:#e8c9aa;}
+.fbox.caption{background:#fffaea;border-color:#e8d68c;font-weight:600;}
+
+.add{border:2px dashed rgba(35,33,28,.4);background:transparent;border-radius:10px;font-size:14px;font-weight:700;}
+.add.list{padding:18px;}
+.add.grid{min-height:120px;}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+.modal{background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:24px;width:540px;max-width:100%;box-shadow:6px 6px 0 var(--ink);max-height:90vh;overflow:auto;}
+.mtitle{font-family:Archivo,sans-serif;font-weight:800;font-size:19px;color:var(--accent);}
+.mnote{font-size:13px;opacity:.7;margin:8px 0 14px;line-height:1.6;}
+.brief{width:100%;min-height:130px;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13.5px;background:#fff;line-height:1.6;}
+.briefrow{display:flex;align-items:center;gap:12px;margin:14px 0;}
+.mbtns{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
+.keyin{width:100%;border:1px solid var(--line);border-radius:8px;padding:11px;font-size:13px;background:#fff;}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700;}
+.badge.on{background:#2e7d32;color:#fff;}
+.badge.off{background:#9a8f78;color:#fff;}
+.link{color:var(--accent);font-weight:700;text-decoration:none;}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:12px 22px;border-radius:30px;font-size:13px;font-weight:600;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.2);}
+
+.projbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 26px;border-bottom:1px solid var(--line);background:#fff8;}
+.projsel{border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:13px;background:#fff;}
+
+@media print{
+  header,.toolbar,.projbar,.fr-btns,.cuttools,.metabar .ratio-grp,.headbtns{display:none!important;}
+  body{background:#fff;}
+  .card-list,.card-grid{box-shadow:none;break-inside:avoid;}
+  .add{display:none;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+// CONTE STUDIO — 配布版 (依存ゼロ・単一HTML)
+// AI機能は Gemini APIキーを入れた場合のみ有効。
+// キーは各ブラウザの localStorage にのみ保存され、コードには含まれません。
+// ─────────────────────────────────────────────────────────
+const RATIOS = {
+  "9:16":{label:"9:16 縦",w:9,h:16,tag:"TikTok / Reels / Shorts"},
+  "1:1":{label:"1:1 正方",w:1,h:1,tag:"Instagram Feed"},
+  "4:5":{label:"4:5 縦長",w:4,h:5,tag:"Instagram Feed縦"},
+  "16:9":{label:"16:9 横",w:16,h:9,tag:"YouTube"},
+};
+const SHOTS=["ロング","ミドル","アップ","俯瞰","手元","POV"];
+const MOVES=["FIX","PAN","ズームイン","ズームアウト","手持ち","縦パン"];
+const LS_KEY="conte_studio_v1";
+const LS_APIKEY="conte_studio_gemini_key";
+const GEMINI_MODEL="gemini-3.5-flash";
+
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+function blankCut(n){return{id:uid(),no:n,duration:3,shot:"ミドル",move:"FIX",scene:"",dialogue:"",caption:"",audio:"",imgPrompt:"",imgData:null,loading:false};}
+function blankProject(){return{id:uid(),title:"新規SNS案件",client:"",product:"",ratio:"9:16",cuts:[blankCut(1)]};}
+
+// ─── state ───
+let state = loadState();
+let view = "list";
+let apiKey = localStorage.getItem(LS_APIKEY) || "";
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw){const s=JSON.parse(raw); if(s.projects&&s.projects.length) return s;}
+  }catch(e){}
+  const p=blankProject();
+  return {projects:[p], activeId:p.id};
+}
+function saveState(){ try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e){} }
+function activeProject(){ return state.projects.find(p=>p.id===state.activeId)||state.projects[0]; }
+function patchProject(o){ const p=activeProject(); Object.assign(p,o); saveState(); render(); }
+function patchCut(id,o){ const p=activeProject(); const c=p.cuts.find(x=>x.id===id); if(c){Object.assign(c,o); saveState(); render();} }
+
+function flash(m){
+  const t=document.createElement("div"); t.className="toast"; t.textContent=m;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2200);
+}
+
+// ─── cut ops ───
+function addCut(){ const p=activeProject(); p.cuts.push(blankCut(p.cuts.length+1)); saveState(); render(); }
+function delCut(id){ const p=activeProject(); p.cuts=p.cuts.filter(c=>c.id!==id).map((c,i)=>({...c,no:i+1})); if(!p.cuts.length)p.cuts=[blankCut(1)]; saveState(); render(); }
+function moveCut(id,dir){ const p=activeProject(); const i=p.cuts.findIndex(c=>c.id===id); const j=i+dir; if(j<0||j>=p.cuts.length)return; [p.cuts[i],p.cuts[j]]=[p.cuts[j],p.cuts[i]]; p.cuts.forEach((c,k)=>c.no=k+1); saveState(); render(); }
+
+// ─── projects ───
+function newProject(){ const p=blankProject(); state.projects.push(p); state.activeId=p.id; saveState(); render(); }
+function switchProject(id){ state.activeId=id; saveState(); render(); }
+function deleteProject(){ if(state.projects.length<=1){flash("最後の案件は削除できません");return;} if(!confirm("この案件を削除しますか？"))return; state.projects=state.projects.filter(p=>p.id!==state.activeId); state.activeId=state.projects[0].id; saveState(); render(); }
+
+// ─── import / export ───
+function exportJSON(){
+  const p=activeProject();
+  const blob=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
+  download(blob, (p.title||"絵コンテ")+".json");
+  flash("JSONを書き出しました");
+}
+function importJSON(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const p=JSON.parse(r.result); p.id=uid();
+      if(!p.cuts) throw 0;
+      state.projects.push(p); state.activeId=p.id; saveState(); render();
+      flash("案件を読み込みました");
+    }catch(e){flash("読み込みに失敗しました（JSON形式を確認）");}
+  };
+  r.readAsText(file);
+}
+function exportText(){
+  const p=activeProject(); const tot=p.cuts.reduce((s,c)=>s+(+c.duration||0),0);
+  const L=[`■ ${p.title}`,`クライアント: ${p.client}  /  商材: ${p.product}`,`比率: ${p.ratio}  /  全${p.cuts.length}カット  /  尺 約${tot}秒`,"──────────────────────"];
+  p.cuts.forEach(c=>{
+    L.push(`CUT ${c.no}  [${c.shot}/${c.move}] ${c.duration}秒`,`  画: ${c.scene}`);
+    if(c.dialogue)L.push(`  アフレコ: ${c.dialogue}`);
+    if(c.caption)L.push(`  テロップ: ${c.caption}`);
+    if(c.audio)L.push(`  音: ${c.audio}`);
+    L.push("");
+  });
+  download(new Blob([L.join("\n")],{type:"text/plain"}), (p.title||"絵コンテ")+"_台本.txt");
+  flash("台本テキストを書き出しました");
+}
+function download(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }
+
+// ─── Gemini API ───
+async function callGemini(prompt, system, maxTokens){
+  if(!apiKey) throw new Error("APIキー未設定");
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  const body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens||1500}};
+  if(system) body.systemInstruction={parts:[{text:system}]};
+  const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},body:JSON.stringify(body)});
+  if(!res.ok){ const t=await res.text(); throw new Error("API "+res.status+": "+t.slice(0,200)); }
+  const data=await res.json();
+  const parts=data?.candidates?.[0]?.content?.parts||[];
+  return parts.map(p=>p.text||"").join("\n");
+}
+function safeJSON(text){
+  const clean=text.replace(/```json|```/g,"").trim();
+  const s=clean.indexOf("["); const e=clean.lastIndexOf("]");
+  return JSON.parse(clean.slice(s,e+1));
+}
+
+async function generateBrief(brief,count){
+  const p=activeProject();
+  const sys="あなたはSNS広告の構成作家です。タレント出演のSNS案件向けに、テンポの良い動画の絵コンテ構成を作ります。各カットは短く具体的に。必ず指定のJSON配列のみを返し、前後の説明やMarkdownは出力しないこと。";
+  const prompt=`以下の案件で${count}カットの絵コンテ構成を作成してください。
+案件: ${p.title}
+クライアント: ${p.client||"未設定"}
+商材: ${p.product||"未設定"}
+比率: ${p.ratio}
+企画概要:
+${brief}
+
+各カットを次のキーで返してください:
+"shot"(${SHOTS.join("/")}のいずれか), "move"(${MOVES.join("/")}のいずれか), "duration"(秒,整数), "scene"(画面の状況/演技を1〜2文), "dialogue"(アフレコ=ナレーションまたはセリフ。無ければ空), "caption"(画面上のテロップ文言。無ければ空), "audio"(BGM/SE), "imgPrompt"(その画を表す視覚指示を簡潔に日本語で)。
+JSON配列のみ返してください。`;
+  const out=await callGemini(prompt,sys,2800);
+  const arr=safeJSON(out);
+  p.cuts=arr.map((c,i)=>({...blankCut(i+1),
+    shot:SHOTS.includes(c.shot)?c.shot:"ミドル",
+    move:MOVES.includes(c.move)?c.move:"FIX",
+    duration:+c.duration||3, scene:c.scene||"", dialogue:c.dialogue||"",
+    caption:c.caption||"", audio:c.audio||"", imgPrompt:c.imgPrompt||""}));
+  saveState();
+}
+
+async function generateImage(cut){
+  const p=activeProject(); const r=RATIOS[p.ratio];
+  const src=cut.imgPrompt||cut.scene;
+  if(!src.trim()){flash("シーン説明かビジュアル指示を入力してください");return;}
+  patchCut(cut.id,{loading:true});
+  try{
+    const sys="あなたは絵コンテ用のラフスケッチ画家です。指定シーンを絵コンテのコマに収まる簡素なモノクロ線画SVGで表現します。人物は棒人間や単純なシルエットでよく、構図(寄り/引き/アングル)が伝わることが最優先。出力は<svg>から</svg>までの有効なSVGコードのみ。背景は#f4f1ea、線は#2a2a2aの細線。説明文やMarkdownは一切出力しないこと。";
+    const prompt=`次のカットのラフ線画を描いてください。
+viewBox="0 0 ${r.w*40} ${r.h*40}" を使用。
+構図: ${cut.shot} / カメラ: ${cut.move}
+シーン: ${cut.scene}
+ビジュアル指示: ${cut.imgPrompt}
+SVGコードのみ返してください。`;
+    const out=await callGemini(prompt,sys,1800);
+    const svg=out.slice(out.indexOf("<svg"),out.lastIndexOf("</svg>")+6);
+    patchCut(cut.id,{imgData:svg||null,loading:false});
+  }catch(e){ patchCut(cut.id,{loading:false}); flash("生成失敗: "+e.message); }
+}
+async function generateAll(){
+  for(const c of activeProject().cuts){ if(!c.imgData&&(c.imgPrompt||c.scene)) await generateImage(c); }
+}
+
+function uploadImage(id,file){ const r=new FileReader(); r.onload=()=>patchCut(id,{imgData:r.result}); r.readAsDataURL(file); }
+
+// ─── modals ───
+function openBrief(){
+  if(!apiKey){ if(confirm("AI構成生成にはGemini APIキーが必要です。設定を開きますか？")) openSettings(); return; }
+  const ov=mkOverlay();
+  ov.innerHTML=`<div class="modal">
+    <div class="mtitle">✦ AI構成ジェネレーター</div>
+    <p class="mnote">企画の概要を書くと、テンポを設計したカット割りを自動で起こします。</p>
+    <textarea class="brief" id="briefArea" placeholder="例: 新発売の炭酸飲料。タレントが暑い日に一気飲みしてスカッとする様子。冒頭3秒で掴み、最後に商品アップとロゴ。明るくテンポ良く。"></textarea>
+    <div class="briefrow"><label style="font-size:13px;font-weight:700;">カット数</label>
+      <input type="range" min="3" max="12" value="5" id="briefCount" style="flex:1;">
+      <span id="briefNum" style="font-family:Archivo;font-weight:800;font-size:18px;width:28px;text-align:center;">5</span></div>
+    <div class="mbtns"><button class="ghost" id="briefClose">閉じる</button><button class="ai-btn" id="briefGo">構成を生成</button></div>
+  </div>`;
+  const num=ov.querySelector("#briefNum"), rng=ov.querySelector("#briefCount");
+  rng.oninput=()=>num.textContent=rng.value;
+  ov.querySelector("#briefClose").onclick=()=>ov.remove();
+  ov.querySelector("#briefGo").onclick=async()=>{
+    const b=ov.querySelector("#briefArea").value;
+    if(!b.trim()){flash("企画概要を入力してください");return;}
+    const btn=ov.querySelector("#briefGo"); btn.disabled=true; btn.textContent="生成中…";
+    try{ await generateBrief(b,+rng.value); ov.remove(); render(); flash("構成を生成しました"); }
+    catch(e){ flash("生成失敗: "+e.message); btn.disabled=false; btn.textContent="構成を生成"; }
+  };
+}
+function openSettings(){
+  const ov=mkOverlay();
+  const set=apiKey?'<span class="badge on">設定済み</span>':'<span class="badge off">未設定</span>';
+  ov.innerHTML=`<div class="modal">
+    <div class="mtitle">⚙ 設定 — AI機能 ${set}</div>
+    <p class="mnote">AI機能（構成自動生成・ラフ画生成）を使うには、Google Gemini の APIキーを入力します。キーは<b>このブラウザ内にのみ保存</b>され、ファイルや外部に送信・埋め込みされません。未入力でも手動の絵コンテ作成は全機能使えます。<br>キー取得: <a class="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a></p>
+    <input class="keyin" id="keyIn" type="password" placeholder="Gemini API キーを貼り付け" value="${esc(apiKey)}">
+    <div class="mbtns" style="margin-top:14px;">
+      <button class="ghost" id="keyClear">キーを削除</button>
+      <button class="ghost" id="keyClose">閉じる</button>
+      <button class="ai-btn" id="keySave">保存</button>
+    </div>
+  </div>`;
+  ov.querySelector("#keyClose").onclick=()=>ov.remove();
+  ov.querySelector("#keyClear").onclick=()=>{ apiKey=""; localStorage.removeItem(LS_APIKEY); ov.remove(); render(); flash("キーを削除しました"); };
+  ov.querySelector("#keySave").onclick=()=>{ apiKey=ov.querySelector("#keyIn").value.trim(); localStorage.setItem(LS_APIKEY,apiKey); ov.remove(); render(); flash("保存しました"); };
+}
+function openHelp(){
+  const ov=mkOverlay();
+  ov.innerHTML=`<div class="modal">
+    <div class="mtitle">使い方</div>
+    <p class="mnote" style="opacity:.85;">
+    1. 上部で案件タイトル・クライアント・商材・比率を設定。<br>
+    2. 「＋カットを追加」でコマを増やし、各カットに構図/カメラ/尺、<b>シーン(画の内容)・アフレコ・テロップ</b>、音、ビジュアル指示を記入。<br>
+    3. 各カットの「画像」ボタンでラフ画像をアップロード可能。<br>
+    4. 入力は<b>自動でブラウザに保存</b>。複数案件は上部の案件バーで切替・追加。<br>
+    5. 「JSON保存/読込」で案件ファイルを書き出し・共有・受け渡し。「台本書き出し」「印刷/PDF」で共有用に出力。<br>
+    6. <b>AI機能（任意）</b>: 設定でGeminiキーを入れると「AIで構成を自動生成」「ラフ画AI生成」が使えます。
+    </p>
+    <div class="mbtns"><button class="ai-btn" id="helpClose">閉じる</button></div>
+  </div>`;
+  ov.querySelector("#helpClose").onclick=()=>ov.remove();
+}
+function mkOverlay(){ const ov=document.createElement("div"); ov.className="overlay"; ov.onclick=e=>{if(e.target===ov)ov.remove();}; document.body.appendChild(ov); return ov; }
+
+// ─── render ───
+function render(){
+  const p=activeProject(); const r=RATIOS[p.ratio];
+  const tot=p.cuts.reduce((s,c)=>s+(+c.duration||0),0);
+  const aiOn=!!apiKey;
+
+  const ratioBtns=Object.entries(RATIOS).map(([k,v])=>
+    `<button class="ratio-btn ${p.ratio===k?'on':''}" title="${v.tag}" data-ratio="${k}">${k}</button>`).join("");
+
+  const projOpts=state.projects.map(pr=>`<option value="${pr.id}" ${pr.id===state.activeId?'selected':''}>${esc(pr.title||"無題")}</option>`).join("");
+
+  document.getElementById("app").innerHTML=`
+  <header>
+    <div class="brand"><div class="mark">◢◣</div><div><div class="bname">HDEコンテンツスタジオ</div><div class="bsub">SNS案件 絵コンテ制作ツール</div></div></div>
+    <div class="headbtns">
+      <button class="ghost" id="btnHelp">使い方</button>
+      <button class="ghost" id="btnSettings">⚙ 設定 ${aiOn?'<span class="badge on" style="margin-left:4px;">AI ON</span>':'<span class="badge off" style="margin-left:4px;">AI OFF</span>'}</button>
+      <button class="ghost" id="btnText">台本書き出し</button>
+      <button class="ghost" id="btnPrint">印刷 / PDF</button>
+    </div>
+  </header>
+
+  <div class="projbar">
+    <span style="font-size:12px;font-weight:700;opacity:.7;">案件</span>
+    <select class="projsel" id="projSel">${projOpts}</select>
+    <button class="ghost" id="btnNewProj">＋新規案件</button>
+    <button class="ghost" id="btnDelProj">案件を削除</button>
+    <span style="width:1px;height:20px;background:var(--line);margin:0 4px;"></span>
+    <button class="ghost" id="btnExportJSON">JSON保存</button>
+    <button class="ghost" id="btnImportJSON">JSON読込</button>
+    <input type="file" id="jsonInput" accept="application/json" hidden>
+  </div>
+
+  <div class="metabar">
+    <input class="title-in" id="mTitle" value="${esc(p.title)}" placeholder="案件タイトル">
+    <input class="meta-in" id="mClient" value="${esc(p.client)}" placeholder="クライアント">
+    <input class="meta-in" id="mProduct" value="${esc(p.product)}" placeholder="商材">
+    <div class="ratio-grp">${ratioBtns}</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="tl">
+      <button class="ai-btn" id="btnBrief" ${aiOn?'':'disabled title="設定でGeminiキーを入力すると有効"'}>✦ AIで構成を自動生成</button>
+      <button class="solid" id="btnGenAll" ${aiOn?'':'disabled'}>全カットの画をAI生成</button>
+    </div>
+    <div class="tr">
+      <span class="stat">${p.cuts.length} カット</span><span class="divx">/</span>
+      <span class="stat">約 ${tot} 秒</span><span class="divx">/</span>
+      <span class="tag">${r.tag}</span>
+      <div class="vtoggle"><button class="vt ${view==='list'?'on':''}" data-view="list">リスト</button><button class="vt ${view==='grid'?'on':''}" data-view="grid">グリッド</button></div>
+    </div>
+  </div>
+
+  <main class="${view}">
+    ${p.cuts.map(c=>cutHTML(c,r)).join("")}
+    <button class="add ${view}" id="btnAdd">＋ カットを追加</button>
+  </main>`;
+
+  bind(p,r);
+}
+
+function frameStyle(r){
+  if(view==="list"){ const w=r.w>=r.h?220:132; return `width:${w}px;aspect-ratio:${r.w}/${r.h};`; }
+  return `width:100%;aspect-ratio:${r.w}/${r.h};`;
+}
+function cutHTML(c,r){
+  const frameInner = c.loading
+    ? `<div class="fr-load"><span class="spin">◠</span><span>描画中…</span></div>`
+    : c.imgData
+      ? (c.imgData.startsWith("<svg") ? c.imgData : `<img src="${c.imgData}" alt="">`)
+      : `<div class="fr-empty"><div class="fr-no">CUT ${c.no}</div><div class="fr-hint">画を生成 / アップロード</div></div>`;
+  const aiOn=!!apiKey;
+  const frame=`<div class="framewrap">
+    <div class="frame" style="${frameStyle(r)}">${frameInner}</div>
+    <div class="fr-btns">
+      <button class="mini" data-gen="${c.id}" ${aiOn?'':'disabled'}>AI生成</button>
+      <button class="mini" data-upload="${c.id}">画像</button>
+    </div></div>`;
+  const fields=`<div class="fields">
+    <div class="cuthead">
+      <span class="cutno">CUT ${c.no}</span>
+      <div class="selrow">
+        <select class="sel" data-f="shot" data-id="${c.id}">${SHOTS.map(s=>`<option ${s===c.shot?'selected':''}>${s}</option>`).join("")}</select>
+        <select class="sel" data-f="move" data-id="${c.id}">${MOVES.map(s=>`<option ${s===c.move?'selected':''}>${s}</option>`).join("")}</select>
+        <div class="durwrap"><input class="dur" type="number" min="1" value="${c.duration}" data-f="duration" data-id="${c.id}"><span class="durunit">秒</span></div>
+      </div>
+      <div class="cuttools">
+        <button class="dot" data-up="${c.id}">↑</button>
+        <button class="dot" data-down="${c.id}">↓</button>
+        <button class="dot" style="color:#b4452f" data-del="${c.id}">✕</button>
+      </div>
+    </div>
+    <div class="fblock"><div class="flabel scene">シーン</div>
+      <textarea class="fbox" rows="2" data-f="scene" data-id="${c.id}" placeholder="画面 / 演技の内容">${esc(c.scene)}</textarea></div>
+    <div class="fblock"><div class="flabel afureco">アフレコ</div>
+      <textarea class="fbox afureco" rows="2" data-f="dialogue" data-id="${c.id}" placeholder="ナレーション / セリフ">${esc(c.dialogue)}</textarea></div>
+    <div class="fblock"><div class="flabel caption">テロップ</div>
+      <textarea class="fbox caption" rows="2" data-f="caption" data-id="${c.id}" placeholder="画面上に表示する文字">${esc(c.caption)}</textarea></div>
+    <div class="two">
+      <input class="fin" data-f="audio" data-id="${c.id}" value="${esc(c.audio)}" placeholder="音 (BGM / SE)">
+      <input class="fin" data-f="imgPrompt" data-id="${c.id}" value="${esc(c.imgPrompt)}" placeholder="ビジュアル指示 (AI用)">
+    </div>
+  </div>`;
+  return `<div class="card-${view}">${frame}${fields}</div>`;
+}
+
+// ─── event binding ───
+function bind(p,r){
+  const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+  $("#btnHelp").onclick=openHelp;
+  $("#btnSettings").onclick=openSettings;
+  $("#btnText").onclick=exportText;
+  $("#btnPrint").onclick=()=>window.print();
+  $("#btnBrief").onclick=openBrief;
+  $("#btnGenAll").onclick=generateAll;
+  $("#btnAdd").onclick=addCut;
+  $("#btnNewProj").onclick=newProject;
+  $("#btnDelProj").onclick=deleteProject;
+  $("#btnExportJSON").onclick=exportJSON;
+  $("#projSel").onchange=e=>switchProject(e.target.value);
+
+  const jin=$("#jsonInput");
+  $("#btnImportJSON").onclick=()=>jin.click();
+  jin.onchange=e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); };
+
+  // meta (no re-render on input; save on change)
+  bindField($("#mTitle"),v=>{p.title=v;saveState(); $("#projSel").querySelector("option[value='"+p.id+"']").textContent=v||"無題";});
+  bindField($("#mClient"),v=>{p.client=v;saveState();});
+  bindField($("#mProduct"),v=>{p.product=v;saveState();});
+
+  $$(".ratio-btn").forEach(b=>b.onclick=()=>patchProject({ratio:b.dataset.ratio}));
+  $$(".vt").forEach(b=>b.onclick=()=>{view=b.dataset.view;render();});
+
+  $$("[data-up]").forEach(b=>b.onclick=()=>moveCut(b.dataset.up,-1));
+  $$("[data-down]").forEach(b=>b.onclick=()=>moveCut(b.dataset.down,1));
+  $$("[data-del]").forEach(b=>b.onclick=()=>delCut(b.dataset.del));
+  $$("[data-gen]").forEach(b=>b.onclick=()=>{const c=p.cuts.find(x=>x.id===b.dataset.gen); if(c)generateImage(c);});
+  $$("[data-upload]").forEach(b=>b.onclick=()=>{
+    const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";
+    inp.onchange=e=>{if(e.target.files[0])uploadImage(b.dataset.upload,e.target.files[0]);}; inp.click();
+  });
+
+  // cut fields: save without full re-render (keep focus); selects/number re-render is fine
+  $$("[data-f]").forEach(el=>{
+    const id=el.dataset.id, f=el.dataset.f;
+    if(el.tagName==="SELECT"){ el.onchange=()=>patchCut(id,{[f]:el.value}); }
+    else if(f==="duration"){ el.onchange=()=>patchCut(id,{[f]:+el.value}); }
+    else { bindField(el,v=>{const c=p.cuts.find(x=>x.id===id); if(c){c[f]=v;saveState();}}); }
+  });
+}
+function bindField(el,onSave){
+  let t; el.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>onSave(el.value),300); };
+  el.onblur=()=>onSave(el.value);
+}
+
+render();
+</script>
+</body>
+</html>
