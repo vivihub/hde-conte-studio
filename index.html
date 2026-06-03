@@ -144,7 +144,9 @@ const SHOTS=["ロング","ミドル","アップ","俯瞰","手元","POV"];
 const MOVES=["FIX","PAN","ズームイン","ズームアウト","手持ち","縦パン"];
 const LS_KEY="conte_studio_v1";
 const LS_APIKEY="conte_studio_gemini_key";
-const GEMINI_MODEL="gemini-3.5-flash";
+const GEMINI_TEXT_MODEL="gemini-3.5-flash";
+const GEMINI_IMAGE_MODEL_DEFAULT="gemini-2.5-flash-image";
+const LS_IMG_MODEL="conte_studio_img_model";
 
 const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -156,6 +158,7 @@ function blankProject(){return{id:uid(),title:"新規SNS案件",client:"",produc
 let state = loadState();
 let view = "list";
 let apiKey = localStorage.getItem(LS_APIKEY) || "";
+let imgModel = localStorage.getItem(LS_IMG_MODEL) || GEMINI_IMAGE_MODEL_DEFAULT;
 
 function loadState(){
   try{
@@ -222,7 +225,7 @@ function download(blob,name){ const a=document.createElement("a"); a.href=URL.cr
 // ─── Gemini API ───
 async function callGemini(prompt, system, maxTokens){
   if(!apiKey) throw new Error("APIキー未設定");
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent`;
   const body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens||1500}};
   if(system) body.systemInstruction={parts:[{text:system}]};
   const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},body:JSON.stringify(body)});
@@ -261,22 +264,62 @@ JSON配列のみ返してください。`;
   saveState();
 }
 
+async function callGeminiImage(prompt, aspectRatio){
+  if(!apiKey) throw new Error("APIキー未設定");
+  // 設定モデル → フォールバック の順に試す
+  const fallback="gemini-2.5-flash-image";
+  const tryList = imgModel===fallback ? [imgModel] : [imgModel, fallback];
+  let lastErr;
+  for(const model of tryList){
+    try{
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      const body={
+        contents:[{role:"user",parts:[{text:prompt}]}],
+        generationConfig:{
+          responseModalities:["TEXT","IMAGE"],
+          imageConfig:{ aspectRatio: aspectRatio||"1:1" }
+        }
+      };
+      const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},body:JSON.stringify(body)});
+      if(!res.ok){
+        const t=await res.text();
+        lastErr=new Error(`${model}: ${res.status} ${t.slice(0,200)}`);
+        // 403/404はモデル未許可。フォールバックを試す
+        if(res.status===403||res.status===404) continue;
+        throw lastErr;
+      }
+      const data=await res.json();
+      const parts=data?.candidates?.[0]?.content?.parts||[];
+      for(const p of parts){
+        if(p.inlineData?.data){
+          const mime=p.inlineData.mimeType||"image/png";
+          return `data:${mime};base64,${p.inlineData.data}`;
+        }
+      }
+      const finish=data?.candidates?.[0]?.finishReason||"";
+      const block=data?.promptFeedback?.blockReason||"";
+      lastErr=new Error(`${model}: 画像が返りませんでした${block?` (${block})`:finish?` (${finish})`:""}`);
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr || new Error("画像生成失敗");
+}
+
 async function generateImage(cut){
   const p=activeProject(); const r=RATIOS[p.ratio];
   const src=cut.imgPrompt||cut.scene;
   if(!src.trim()){flash("シーン説明かビジュアル指示を入力してください");return;}
   patchCut(cut.id,{loading:true});
   try{
-    const sys="あなたは絵コンテ用のラフスケッチ画家です。指定シーンを絵コンテのコマに収まる簡素なモノクロ線画SVGで表現します。人物は棒人間や単純なシルエットでよく、構図(寄り/引き/アングル)が伝わることが最優先。出力は<svg>から</svg>までの有効なSVGコードのみ。背景は#f4f1ea、線は#2a2a2aの細線。説明文やMarkdownは一切出力しないこと。";
-    const prompt=`次のカットのラフ線画を描いてください。
-viewBox="0 0 ${r.w*40} ${r.h*40}" を使用。
-構図: ${cut.shot} / カメラ: ${cut.move}
-シーン: ${cut.scene}
+    const ratioText = ({"9:16":"縦長9:16","1:1":"正方形1:1","4:5":"縦4:5","16:9":"横長16:9"})[p.ratio]||p.ratio;
+    const prompt=`絵コンテ用のラフスケッチを描いてください。
+スタイル: モノクロの鉛筆ラフ画。シンプルな線画。背景はクリーム色の紙。絵コンテ風で構図がわかればよく、細部は省略可。
+画面比率: ${ratioText}
+構図: ${cut.shot}(${cut.move})
+シーンの内容: ${cut.scene}
 ビジュアル指示: ${cut.imgPrompt}
-SVGコードのみ返してください。`;
-    const out=await callGemini(prompt,sys,1800);
-    const svg=out.slice(out.indexOf("<svg"),out.lastIndexOf("</svg>")+6);
-    patchCut(cut.id,{imgData:svg||null,loading:false});
+※写実的すぎず、絵コンテとして使える簡素なスケッチで。文字は入れないでください。`;
+    const dataUrl=await callGeminiImage(prompt, p.ratio);
+    patchCut(cut.id,{imgData:dataUrl,loading:false});
   }catch(e){ patchCut(cut.id,{loading:false}); flash("生成失敗: "+e.message); }
 }
 async function generateAll(){
@@ -312,10 +355,20 @@ function openBrief(){
 function openSettings(){
   const ov=mkOverlay();
   const set=apiKey?'<span class="badge on">設定済み</span>':'<span class="badge off">未設定</span>';
+  const models=[
+    ["gemini-2.5-flash-image","Gemini 2.5 Flash Image (推奨・フリーティアあり)"],
+    ["gemini-3.1-flash-image","Gemini 3.1 Flash Image (Nano Banana 2)"],
+    ["gemini-3-pro-image","Gemini 3 Pro Image (高画質・要課金)"],
+  ];
+  const opts=models.map(([v,l])=>`<option value="${v}" ${imgModel===v?'selected':''}>${l}</option>`).join("");
   ov.innerHTML=`<div class="modal">
     <div class="mtitle">⚙ 設定 — AI機能 ${set}</div>
     <p class="mnote">AI機能（構成自動生成・ラフ画生成）を使うには、Google Gemini の APIキーを入力します。キーは<b>このブラウザ内にのみ保存</b>され、ファイルや外部に送信・埋め込みされません。未入力でも手動の絵コンテ作成は全機能使えます。<br>キー取得: <a class="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a></p>
-    <input class="keyin" id="keyIn" type="password" placeholder="Gemini API キーを貼り付け" value="${esc(apiKey)}">
+    <label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px;">Gemini APIキー</label>
+    <input class="keyin" id="keyIn" type="password" placeholder="APIキーを貼り付け" value="${esc(apiKey)}">
+    <label style="font-size:12px;font-weight:700;display:block;margin:14px 0 5px;">画像生成モデル</label>
+    <select class="keyin" id="modelSel">${opts}</select>
+    <p style="font-size:11.5px;opacity:.6;margin:6px 0 0;line-height:1.5;">アカウントによって使用可能なモデルが異なります。エラーが出る場合は別のモデルを試してください。指定モデルが使えない場合は自動でフォールバックします。</p>
     <div class="mbtns" style="margin-top:14px;">
       <button class="ghost" id="keyClear">キーを削除</button>
       <button class="ghost" id="keyClose">閉じる</button>
@@ -324,7 +377,13 @@ function openSettings(){
   </div>`;
   ov.querySelector("#keyClose").onclick=()=>ov.remove();
   ov.querySelector("#keyClear").onclick=()=>{ apiKey=""; localStorage.removeItem(LS_APIKEY); ov.remove(); render(); flash("キーを削除しました"); };
-  ov.querySelector("#keySave").onclick=()=>{ apiKey=ov.querySelector("#keyIn").value.trim(); localStorage.setItem(LS_APIKEY,apiKey); ov.remove(); render(); flash("保存しました"); };
+  ov.querySelector("#keySave").onclick=()=>{
+    apiKey=ov.querySelector("#keyIn").value.trim();
+    imgModel=ov.querySelector("#modelSel").value;
+    localStorage.setItem(LS_APIKEY,apiKey);
+    localStorage.setItem(LS_IMG_MODEL,imgModel);
+    ov.remove(); render(); flash("保存しました");
+  };
 }
 function openHelp(){
   const ov=mkOverlay();
